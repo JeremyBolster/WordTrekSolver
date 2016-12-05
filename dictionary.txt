@@ -12513,6 +12513,7 @@ bowsprit
 bowsprits
 bowstring
 bowstrings
+bowtie
 bowwow
 bowwows
 bowyer

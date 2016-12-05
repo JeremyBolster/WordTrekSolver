@@ -13,6 +13,7 @@ public class Main {
     static List<char[][]> possibleBlocks;
     static List<String> dictionary[];
     static char[][] wordBlock;
+    static boolean prune;
 
 
     //This algorithm only works on square blocks of letters
@@ -64,15 +65,58 @@ public class Main {
                     }
                 }
             }
+            if(prune && i < wordLength.length-1) {
+                System.out.println("Entering pruning phase...");
+                prune(tempWordList, tempCurrentBlocks);
+            }
             wordList = tempWordList;
             currentBlocks = tempCurrentBlocks;
 
             System.out.printf("The time taken to enumerate round %d was: %d ms\n", i+1, System.currentTimeMillis() - startTime);
             System.out.printf("The number of possible words round %d are: %d \n", i+1, currentBlocks.size());
+            List<String> strList = new ArrayList<>();
+            for(List list: wordList) {
+                if(!strList.contains(list.get(0))) {
+                    strList.add((String) list.get(0));
+                }
+            }
+            Collections.sort(strList);
+            System.out.printf("potential first words(%d): %s\n",strList.size(),strList.toString());
         }
         System.out.printf("\n\nThe final solutions are:\n");
         for(List list: wordList) {
             System.out.println(list.toString());
+        }
+        List<String> strList = new ArrayList<>();
+        for(List list: wordList) {
+            if(!strList.contains(list.get(0))) {
+                strList.add((String) list.get(0));
+            }
+        }
+        Collections.sort(strList);
+        System.out.println("potential first words: "+strList.toString());
+    }
+
+    public static void prune(List<List<String>> list, List<char[][]> clist) {
+
+        for(int i=0; i < list.size(); i++) {
+            char[][] doubleChar = clist.get(i);
+            for(int j=list.size()-1; j > i; j--) {
+                boolean equals = true;
+                loops:
+                for(int q=0; q < doubleChar.length; q++) {
+                    for(int w=0; w < doubleChar.length; w++) {
+                        if(doubleChar[q][w] != clist.get(j)[q][w]){
+                            equals = false;
+                            break loops;
+                        }
+                    }
+                }
+                if(equals) {
+                    list.remove(j);
+                    clist.remove(j);
+                }
+            }
         }
     }
 
@@ -107,6 +151,9 @@ public class Main {
         for(int i=0; wordBlock.length > i; i++) {
             wordBlock[i] = sc.next().toCharArray();
         }
+
+        System.out.println("Would you like to prune? true/false");
+        prune = sc.nextBoolean();
     }
 
     public static void checker(int i, int j, char[] currentWord, int depth, char wordBlock[][]) {
