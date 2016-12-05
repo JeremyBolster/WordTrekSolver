@@ -8,10 +8,11 @@ import java.util.*;
 
 public class Main {
 
-    static int wordLength;
+    static int wordLength[];
     static List<String> possibleWords;
-    static char wordBlock[][];
+    static List<char[][]> possibleBlocks;
     static List<String> dictionary[];
+    static char[][] wordBlock;
 
 
     //This algorithm only works on square blocks of letters
@@ -24,67 +25,90 @@ public class Main {
      */
     public static void main(String[] args) {
 
-        dictionary = new List[26];
-        for(int i=0; 26 > i; i++) {
-            dictionary[i] = new ArrayList<>();
+        inputGatherer();
+
+
+
+        List<List<String>> wordList = new ArrayList<>();
+        List<char[][]> currentBlocks = new ArrayList<>();
+        wordList.add(new ArrayList<>());
+        currentBlocks.add(wordBlock);
+
+        for(int i=0; i < wordLength.length; i++) {
+            long startTime = System.currentTimeMillis();
+            loadDictionary(wordLength[i]);
+
+            //begin enumerating possibilities
+
+            List<List<String>> tempWordList = new ArrayList<>();
+            List<char[][]> tempCurrentBlocks = new ArrayList<>();
+
+            for(int j=0; j < currentBlocks.size(); j++) {
+
+                possibleWords = new ArrayList<>();
+                possibleBlocks = new ArrayList<>();
+                enumeratePossibleWords(wordLength[i], currentBlocks.get(j));
+
+                if(possibleBlocks.size() > 0) { //there is actually something to add
+                    for(int k = 0; k < possibleBlocks.size(); k++) {
+
+                        tempCurrentBlocks.add(possibleBlocks.get(k)); //add the new block
+                        tempWordList.add(new ArrayList<>()); //add a new array to match the block
+
+                        for(int q = 0; q < wordList.get(j).size(); q++) {
+                            tempWordList.get(tempWordList.size()-1) //get the new array
+                                    .add(wordList.get(j).get(q)); //populate the new array with the old values
+                        }
+                        tempWordList.get(tempWordList.size()-1)
+                                .add(possibleWords.get(k)); //add the word corresponding to the block
+                    }
+                }
+            }
+            wordList = tempWordList;
+            currentBlocks = tempCurrentBlocks;
+
+            System.out.printf("The time taken to enumerate round %d was: %d ms\n", i+1, System.currentTimeMillis() - startTime);
+            System.out.printf("The number of possible words round %d are: %d \n", i+1, currentBlocks.size());
         }
-
-        Scanner sc = new Scanner(System.in);
-
-        wordBlock = new char
-                [sc.nextInt()][sc.nextInt()];
-
-        wordLength = sc.nextInt();
-        loadDictionary(wordLength);
-
-        //populate the wordBlock
-        for(int i=0; wordBlock.length > i; i++) {
-            wordBlock[i]= sc.next().toCharArray();
+        System.out.printf("\n\nThe final solutions are:\n");
+        for(List list: wordList) {
+            System.out.println(list.toString());
         }
+    }
 
-        possibleWords = new ArrayList<>();
-
-        //begin enumerating possiblities
-
-        long startTime = System.currentTimeMillis();
-
-        for(int i=0; wordBlock.length > i; i++) {
-            for(int j=0; wordBlock.length > j; j++) {
-                if(wordBlock[i][j] == 'Z') {
+    public static void enumeratePossibleWords(int wordLength, char[][] wordBlock) {
+        for (int i = 0; wordBlock.length > i; i++) {
+            for (int j = 0; wordBlock.length > j; j++) {
+                if (wordBlock[i][j] == 'Z') {
                     continue;
                 }
-                long checkStartTime = System.currentTimeMillis();
-                checker(i,j, new char[wordLength], 0, wordBlock);
-                System.out.printf("Done search at position: %d,\t Took %d miliseconds\n",
-                        (i*wordBlock.length+j), System.currentTimeMillis()-checkStartTime);
+                checker(i, j, new char[wordLength], 0, wordBlock);
             }
         }
-
-        System.out.printf("The time taken to enumerate was: %d ms\n", System.currentTimeMillis()-startTime);
-        System.out.printf("The number of possible words is: %d \n", possibleWords.size());
-        startTime = System.currentTimeMillis();
-
-        List<String> finalList = new ArrayList<>();
-        //check words against dictionary
-        for(String str: possibleWords) {
-            if(dictionary[str.charAt(0)-'a'].contains(str)) {
-                if(!finalList.contains(str)) {
-                    finalList.add(str);
-                }
-            }
-        }
-        System.out.printf("The time taken to check against dictionary was: %d ms\n", System.currentTimeMillis()-startTime);
-
-        //print out the possible words
-        System.out.printf("The number of possible words is: %d \n", finalList.size());
-        Collections.sort(finalList);
-        for(String str: finalList) {
-            System.out.println(str);
-        }
-
-
     }
-    //doesn't yet check if its working back on itself
+
+    public static void inputGatherer() {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("Please enter the block size: ");
+        int blockSize = sc.nextInt();
+        wordBlock = new char[blockSize][blockSize];
+
+        System.out.println("Please enter the number of words to solve for: ");
+        wordLength = new int[sc.nextInt()];
+
+        System.out.println("Please enter the lengths of the words");
+        for(int i=0; i < wordLength.length; i++) {
+            wordLength[i] = sc.nextInt();
+        }
+
+        System.out.println("Please enter the word block, use 'Z' for spaces");
+        //populate the wordBlock
+        for(int i=0; wordBlock.length > i; i++) {
+            wordBlock[i] = sc.next().toCharArray();
+        }
+    }
+
     public static void checker(int i, int j, char[] currentWord, int depth, char wordBlock[][]) {
         if(wordBlock[i][j]!='Z') {
             char newWordBlock[][] = new char[wordBlock.length][];
@@ -93,8 +117,13 @@ public class Main {
             }
             currentWord[depth] = newWordBlock[i][j];
             newWordBlock[i][j] = 'Z';
-            if(depth == wordLength-1) {
-                possibleWords.add(new String(currentWord));
+            if(depth == currentWord.length-1) {
+                String str = new String(currentWord);
+                if(dictionary[str.charAt(0)-'a'].contains(str)) {
+                    possibleWords.add(str);
+                    letterDropper(newWordBlock);
+                    possibleBlocks.add(newWordBlock);
+                }
             } else { //begin enumeration checks
                 if(j+1 < wordBlock.length)
                     checker(i,j+1, currentWord, depth+1, newWordBlock); //right
@@ -116,7 +145,30 @@ public class Main {
         }
     }
 
+    public static void letterDropper(char[][] block) {
+        boolean tryAgain;
+        do {
+            tryAgain = false;
+            for (int i = block.length-1; i >= 1; i--) { //height, no sense trying to swap the top row with nothing
+                for (int j = block.length-1; j >= 0; j--) {
+                    if(block[i][j]=='Z') {
+                        block[i][j] = block[i-1][j];
+                        block[i-1][j] = 'Z';
+                        if(block[i][j] != 'Z') { //if swap did something
+                            tryAgain = true;
+                        }
+                    }
+                }
+            }
+        } while (tryAgain);
+    }
+
     public static void loadDictionary(int wordLength) {
+
+        dictionary = new List[26];
+        for(int i=0; 26 > i; i++) {
+            dictionary[i] = new ArrayList<>();
+        }
         try {
             BufferedReader in = new BufferedReader(new FileReader(
                     "/Users/bolster/Documents/Coding Workspace/WordTrekSolver/src/com/company/main/dictionary.txt"));
